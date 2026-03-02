@@ -5,7 +5,9 @@ spark = SparkSession.builder \
     .appName("Unity Catalog Example") \
     .getOrCreate()
 
-table = "main.flights_dev.flights_raw"
+catalog = "main"
+database = "flights_dev"
+table = f"{catalog}.{database}.flights_raw"
 
 # Connect to Unity Catalog using catalog main
 spark.sql(f"""Select WeatherDelay, NASDelay, SecurityDelay, LateAircraftDelay, IsArrDelayed 

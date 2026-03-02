@@ -1,26 +1,23 @@
 import os
 import pytest
 
-import databricks
 from databricks.sdk import WorkspaceClient
+
 
 @pytest.fixture
 def ws_conn():
-    # Return the workspace connection, uses DATABRICKS_HOST and DATABRICKS_TOKEN env variables.
-    return WorkspaceClient(host = os.environ['DATABRICKS_HOST'], 
-                           client_id = os.environ['DATABRICKS_CLIENT_ID'], 
-                           client_secret = os.environ['DATABRICKS_CLIENT_SECRET'])
+    host = os.environ.get('DATABRICKS_HOST')
+    client_id = os.environ.get('DATABRICKS_CLIENT_ID')
+    client_secret = os.environ.get('DATABRICKS_CLIENT_SECRET')
+    if not all([host, client_id, client_secret]):
+        pytest.skip("DATABRICKS_HOST, DATABRICKS_CLIENT_ID, and DATABRICKS_CLIENT_SECRET must be set")
+    return WorkspaceClient(host=host, client_id=client_id, client_secret=client_secret)
+
 
 def test_unity_catalog_objects(ws_conn):
-    # - Catalogs
-    # ws_conn.catalogs.list()
-    # ws_conn.catalogs.get(name=...)
+    catalogs = list(ws_conn.catalogs.list())
+    assert len(catalogs) > 0, "Expected at least one catalog"
 
-    # - Schemas
-    # ws_conn.schemas.get(full_name=...)
-    # ws_conn.schemas.list(catalog_name=...)
-
-    # - Tables
-    # ws_conn.tables.get(full_name=table_full_name)
-    # ws_conn.tables.list(catalog_name=..., schema_name=...)
-    assert True
+    first_catalog = catalogs[0]
+    schemas = list(ws_conn.schemas.list(catalog_name=first_catalog.name))
+    assert len(schemas) > 0, f"Expected at least one schema in catalog '{first_catalog.name}'"

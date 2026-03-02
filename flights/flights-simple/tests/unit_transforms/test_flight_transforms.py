@@ -46,5 +46,13 @@ def test_delay_type_transform__valid(spark_session):
     result_df = flight_transforms.delay_type_transform(input_df)
 
     assertDataFrameEqual(result_df.select("delay_type"), expected_df)
-    
 
+
+def test_delay_type_transform__all_na(spark_session):
+    input_df = spark_session.createDataFrame([
+        ["NA","NA","NA","NA", "NO", "NO"],
+    ], ["WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay", "IsArrDelayed", "IsDepDelayed"])
+
+    result_df = flight_transforms.delay_type_transform(input_df)
+    result_row = result_df.select("delay_type").collect()[0]
+    assert result_row.delay_type is None

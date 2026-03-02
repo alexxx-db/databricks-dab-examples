@@ -1,4 +1,4 @@
-from src.uv_bundle.functions.transforms import get_long_trips
+from uv_bundle.functions.transforms import get_long_trips
 from pyspark.sql import SparkSession
 
 def get_spark() -> SparkSession:

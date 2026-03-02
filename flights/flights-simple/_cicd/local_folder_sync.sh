@@ -1,1 +1,1 @@
-databricks sync . /Users/dustin.vannoy@databricks.com/flights_sync
+databricks sync . /Users/${USER_EMAIL}/flights_sync

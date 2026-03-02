@@ -10,10 +10,10 @@ handle_error() {
 export DATABRICKS_BUNDLE_ENV="prod"
 export PROD_DIRECTORY="/Repos/JK/cicd_w_dabs_ga_jk_demo"
 export DATABRICKS_AUTH_TYPE="oauth-m2m"
-export DATABRICKS_HOST=$(echo "$HOST")
-export DATABRICKS_CLIENT_ID=$(echo "$CLIENT_ID")
-export DATABRICKS_CLIENT_SECRET=$(echo "$CLIENT_SECRET")
-export DATABRICKS_TOKEN=$(echo "$TOKEN")
+export DATABRICKS_HOST="$HOST"
+export DATABRICKS_CLIENT_ID="$CLIENT_ID"
+export DATABRICKS_CLIENT_SECRET="$CLIENT_SECRET"
+export DATABRICKS_TOKEN="$TOKEN"
 
 # Update Repo
 BRANCH=$(echo "$GIT_BRANCH" | cut -d'/' -f2)

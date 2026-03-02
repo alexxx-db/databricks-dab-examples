@@ -22,6 +22,8 @@ class DatabaseConnection:
 
         if not self.postgres_host:
             raise ValueError("PGHOST environment variable is required")
+        if not self.postgres_database:
+            raise ValueError("PGDATABASE environment variable is required")
 
     def get_connection(self):
         token = self.workspace_client.config.oauth_token().access_token

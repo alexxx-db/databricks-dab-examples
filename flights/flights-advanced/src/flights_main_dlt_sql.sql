@@ -13,7 +13,7 @@
     "header", "false",
     "schema", "Year INT, Month INT, DayofMonth INT, DayOfWeek INT, DepTime STRING, CRSDepTime INT, ArrTime STRING, CRSArrTime INT, UniqueCarrier STRING, FlightNum INT, TailNum STRING, ActualElapsedTime STRING, CRSElapsedTime INT, AirTime STRING, ArrDelay STRING, DepDelay STRING, Origin STRING, Dest STRING, Distance STRING, TaxiIn STRING, TaxiOut STRING, Cancelled INT, CancellationCode STRING, Diverted INT, CarrierDelay STRING, WeatherDelay STRING, NASDelay STRING, SecurityDelay STRING, LateAircraftDelay STRING, IsArrDelayed STRING, IsDepDelayed STRING"
    )
- ) LIMIT 1001;
+ ) LIMIT 1000;
 
 -- COMMAND ----------
 

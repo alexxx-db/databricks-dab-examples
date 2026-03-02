@@ -13,8 +13,6 @@ dbutils.widgets.text("database", "flights_dev")
 from flights.transforms import flight_transforms, shared_transforms
 from flights.utils import flight_utils
 
-from flights.utils import flight_utils
-
 catalog = dbutils.widgets.get("catalog")
 database = dbutils.widgets.get("database")
 
@@ -47,4 +45,4 @@ df_transformed = (
 # COMMAND ----------
 
 df_transformed.write.format("delta").mode("append").saveAsTable(raw_table_name)
-print(f"Succesfully wrote data to {raw_table_name}")
+print(f"Successfully wrote data to {raw_table_name}")

@@ -1,10 +1,13 @@
+import logging
 from typing import List
 
 from database import db_connection
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from models import TaxiTrip
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -17,7 +20,6 @@ app.mount("/", app_frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -32,10 +34,14 @@ def get_taxi_trips_data() -> List[TaxiTrip]:
         LIMIT 100
     """
 
-    with db_connection.get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query)
-            rows = cur.fetchall()
+    try:
+        with db_connection.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+    except Exception as e:
+        logger.error(f"Database query failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch taxi trip data")
 
     return [
         TaxiTrip(

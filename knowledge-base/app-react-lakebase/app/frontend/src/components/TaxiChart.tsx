@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { AgCharts } from "ag-charts-react";
-import type { AgChartOptions } from "ag-charts-community";
+import type { AgChartOptions, AgNumberAxisOptions, AgScatterSeriesOptions } from "ag-charts-community";
 import type { TaxiTrip } from "../App";
 
 interface TaxiChartProps {
   data: TaxiTrip[];
+}
+
+interface AxisLabelFormatterParams {
+  value: number;
 }
 
 export function TaxiChart({ data }: TaxiChartProps) {
@@ -37,7 +41,7 @@ export function TaxiChart({ data }: TaxiChartProps) {
           strokeWidth: 1,
           size: 8,
         },
-      } as any,
+      } satisfies AgScatterSeriesOptions,
     ],
     axes: [
       {
@@ -49,11 +53,11 @@ export function TaxiChart({ data }: TaxiChartProps) {
         },
         label: {
           fontFamily: "DM Sans",
-          formatter: (params: any) => {
+          formatter: (params: AxisLabelFormatterParams) => {
             return params.value + " miles";
           },
         },
-      } as any,
+      } satisfies AgNumberAxisOptions,
       {
         type: "number",
         position: "left",
@@ -63,11 +67,11 @@ export function TaxiChart({ data }: TaxiChartProps) {
         },
         label: {
           fontFamily: "DM Sans",
-          formatter: (params: any) => {
+          formatter: (params: AxisLabelFormatterParams) => {
             return "$" + params.value;
           },
         },
-      } as any,
+      } satisfies AgNumberAxisOptions,
     ],
   });
 

@@ -1,7 +1,9 @@
 from pyspark.sql.functions import col, lit
 from databricks.connect import DatabricksSession
 
-table = "main.flights_dev.flights_raw"
+catalog = "main"
+database = "flights_dev"
+table = f"{catalog}.{database}.flights_raw"
 
 spark = DatabricksSession.builder.serverless().getOrCreate()
 

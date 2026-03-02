@@ -1,3 +1,8 @@
+# Permission levels:
+#   CAN_VIEW - Read-only access to view job results and status
+#   CAN_MANAGE_RUN - Can trigger and cancel runs, plus CAN_VIEW permissions
+#   CAN_MANAGE - Full management including editing job configuration
+#   IS_OWNER - Full ownership including granting permissions to others
 variables:
   my_permissions:
     description: "My permissions"

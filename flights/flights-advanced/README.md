@@ -54,7 +54,7 @@ Setup steps:
 
 5. To run a job or pipeline, use the "run" command:
    ```
-   $ databricks bundle run notebook_validation_job --params "catalog=main;database=dustinvannoy_dev"
+   $ databricks bundle run notebook_validation_job --params "catalog=main;database=flights_dev"
    ```
 
 6. Optionally, install developer tools such as the Databricks extension for Visual Studio Code from

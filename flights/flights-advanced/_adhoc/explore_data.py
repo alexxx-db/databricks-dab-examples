@@ -6,7 +6,7 @@ def get_args():
 
     # Add arguments with default values
     parser.add_argument('-c', '--catalog', type=str, default='main', help='Target catalog')
-    parser.add_argument('-d', '--database', type=str, default='dustinvannoy_dev', help='Target schema/database')
+    parser.add_argument('-d', '--database', type=str, default='flights_dev', help='Target schema/database')
     
     return parser.parse_args()
 

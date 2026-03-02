@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AgCharts } from "ag-charts-react";
-import type { AgChartOptions, AgNumberAxisOptions, AgScatterSeriesOptions } from "ag-charts-community";
+import type { AgCartesianChartOptions } from "ag-charts-community";
 import type { TaxiTrip } from "../App";
 
 interface TaxiChartProps {
@@ -12,7 +12,7 @@ interface AxisLabelFormatterParams {
 }
 
 export function TaxiChart({ data }: TaxiChartProps) {
-  const [chartOptions] = useState<AgChartOptions>({
+  const [chartOptions] = useState<AgCartesianChartOptions>({
     title: {
       text: "Daily fare trends",
       fontFamily: "DM Sans",
@@ -35,13 +35,11 @@ export function TaxiChart({ data }: TaxiChartProps) {
         xName: "Trip distance",
         yKey: "fare_amount",
         yName: "Fare Amount",
-        marker: {
-          fill: "#FF3722",
-          stroke: "#C82B1B",
-          strokeWidth: 1,
-          size: 8,
-        },
-      } satisfies AgScatterSeriesOptions,
+        fill: "#FF3722",
+        stroke: "#C82B1B",
+        strokeWidth: 1,
+        size: 8,
+      },
     ],
     axes: [
       {
@@ -57,7 +55,7 @@ export function TaxiChart({ data }: TaxiChartProps) {
             return params.value + " miles";
           },
         },
-      } satisfies AgNumberAxisOptions,
+      },
       {
         type: "number",
         position: "left",
@@ -71,7 +69,7 @@ export function TaxiChart({ data }: TaxiChartProps) {
             return "$" + params.value;
           },
         },
-      } satisfies AgNumberAxisOptions,
+      },
     ],
   });
 

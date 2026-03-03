@@ -13,16 +13,9 @@
 
 import json
 import os
-import re
 from pathlib import Path
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.dashboards import (
-    GenieSpace,
-    GenieTableIdentifier,
-    GenieExampleQuery,
-    GenieTableJoin,
-)
 
 # COMMAND ----------
 
@@ -76,10 +69,16 @@ def resolve_placeholders_recursive(obj, catalog, schema, warehouse_id):
 # COMMAND ----------
 
 def get_notebook_dir():
-    """Get the directory of the current notebook."""
+    """Get the workspace filesystem directory of the current notebook."""
     try:
-        notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-        return str(Path(notebook_path).parent)
+        notebook_path = (
+            dbutils.notebook.entry_point.getDbutils()
+            .notebook().getContext().notebookPath().get()
+        )
+        parent = str(Path(notebook_path).parent)
+        if not parent.startswith("/Workspace"):
+            parent = "/Workspace" + parent
+        return parent
     except Exception:
         return "/Workspace"
 
@@ -94,7 +93,7 @@ def load_space_config(config_path):
 def get_state_file_path():
     """Get the path to the state file for the current target."""
     notebook_dir = get_notebook_dir()
-    return os.path.join("/Workspace", notebook_dir.lstrip("/"), "space_state.json")
+    return os.path.join(notebook_dir, "space_state.json")
 
 
 def load_state(state_path):
@@ -116,8 +115,8 @@ def save_state(state_path, state):
 def find_space_by_title(title):
     """Search for an existing Genie Space by title. Returns space_id or None."""
     try:
-        spaces = w.genie.list_spaces()
-        for space in spaces:
+        response = w.genie.list_spaces()
+        for space in (response.spaces or []):
             if space.title == title:
                 return space.space_id
     except Exception as e:
@@ -126,53 +125,57 @@ def find_space_by_title(title):
 
 # COMMAND ----------
 
-def build_serialized_space(config, catalog, schema, warehouse_id, target):
-    """Build a GenieSpace object from a resolved config dict."""
+def prepare_space_deployment(config, catalog, schema, warehouse_id, target):
+    """Prepare deployment parameters from a space config dict.
+
+    The Genie API stores all space configuration (tables, instructions, joins,
+    sample questions, etc.) inside a single ``serialized_space`` JSON string.
+    This function transforms our user-friendly config format into that structure.
+
+    Returns a dict with title, description, warehouse_id, and serialized_space.
+    """
     resolved = resolve_placeholders_recursive(config, catalog, schema, warehouse_id)
 
     title = resolved["title"]
     if target:
         title = f"{title} ({target})"
 
-    table_identifiers = []
-    for t in resolved.get("table_identifiers", []):
-        table_identifiers.append(
-            GenieTableIdentifier(
-                table_identifier=t["table_identifier"],
-                id=t.get("id"),
-            )
-        )
+    # Build the serialized_space structure expected by the Genie API
+    serialized = {"version": 2}
 
-    example_sqls = []
-    for eq in resolved.get("example_sqls", []):
-        example_sqls.append(
-            GenieExampleQuery(
-                question=eq["question"],
-                sql=eq["sql"],
-            )
-        )
+    # Data sources (tables)
+    if "table_identifiers" in resolved:
+        serialized["data_sources"] = {
+            "tables": resolved["table_identifiers"]
+        }
 
-    table_joins = []
-    for tj in resolved.get("table_joins", []):
-        table_joins.append(
-            GenieTableJoin(
-                left_table_id=tj["left_table_id"],
-                right_table_id=tj["right_table_id"],
-                left_column=tj["left_column"],
-                right_column=tj["right_column"],
-            )
-        )
+    # Config (sample questions)
+    if "sample_questions" in resolved:
+        serialized["config"] = {
+            "sample_questions": resolved["sample_questions"]
+        }
 
-    return GenieSpace(
-        title=title,
-        description=resolved.get("description", ""),
-        warehouse_id=resolved.get("warehouse_id", warehouse_id),
-        table_identifiers=table_identifiers,
-        sample_questions=resolved.get("sample_questions"),
-        instructions=resolved.get("instructions"),
-        example_sqls=example_sqls if example_sqls else None,
-        table_joins=table_joins if table_joins else None,
-    )
+    # Instructions block
+    instructions = {}
+    if "instructions" in resolved:
+        instr = resolved["instructions"]
+        if isinstance(instr, list):
+            instructions["text_instructions"] = "\n".join(instr)
+        else:
+            instructions["text_instructions"] = instr
+    if "example_sqls" in resolved:
+        instructions["example_question_sqls"] = resolved["example_sqls"]
+    if "table_joins" in resolved:
+        instructions["join_specs"] = resolved["table_joins"]
+    if instructions:
+        serialized["instructions"] = instructions
+
+    return {
+        "title": title,
+        "description": resolved.get("description", ""),
+        "warehouse_id": resolved.get("warehouse_id", warehouse_id),
+        "serialized_space": json.dumps(serialized),
+    }
 
 # COMMAND ----------
 
@@ -184,7 +187,7 @@ def build_serialized_space(config, catalog, schema, warehouse_id, target):
 def discover_space_configs():
     """Discover all .json files in the spaces directory."""
     notebook_dir = get_notebook_dir()
-    spaces_dir = os.path.join("/Workspace", notebook_dir.lstrip("/"), "spaces")
+    spaces_dir = os.path.join(notebook_dir, "spaces")
     configs = []
     if os.path.isdir(spaces_dir):
         for filename in sorted(os.listdir(spaces_dir)):
@@ -208,7 +211,7 @@ for config_path in config_files:
     print(f"\nProcessing: {config_name}")
 
     config = load_space_config(config_path)
-    space_obj = build_serialized_space(config, catalog, schema, warehouse_id, bundle_target)
+    params = prepare_space_deployment(config, catalog, schema, warehouse_id, bundle_target)
 
     space_id = target_state.get(config_name)
     action = None
@@ -224,7 +227,7 @@ for config_path in config_files:
 
     # Fallback: search by title
     if not space_id:
-        space_id = find_space_by_title(space_obj.title)
+        space_id = find_space_by_title(params["title"])
         if space_id:
             print(f"  Found space by title: {space_id}")
 
@@ -232,29 +235,22 @@ for config_path in config_files:
     if space_id:
         print(f"  Updating space {space_id}...")
         updated = w.genie.update_space(
-            space_id=space_id,
-            title=space_obj.title,
-            description=space_obj.description,
-            warehouse_id=space_obj.warehouse_id,
-            table_identifiers=space_obj.table_identifiers,
-            sample_questions=space_obj.sample_questions,
-            instructions=space_obj.instructions,
-            example_sqls=space_obj.example_sqls,
-            table_joins=space_obj.table_joins,
+            space_id,
+            title=params["title"],
+            description=params["description"],
+            warehouse_id=params["warehouse_id"],
+            serialized_space=params["serialized_space"],
         )
         space_id = updated.space_id
         action = "updated"
     else:
         print(f"  Creating new space...")
         created = w.genie.create_space(
-            title=space_obj.title,
-            description=space_obj.description,
-            warehouse_id=space_obj.warehouse_id,
-            table_identifiers=space_obj.table_identifiers,
-            sample_questions=space_obj.sample_questions,
-            instructions=space_obj.instructions,
-            example_sqls=space_obj.example_sqls,
-            table_joins=space_obj.table_joins,
+            params["warehouse_id"],
+            params["serialized_space"],
+            title=params["title"],
+            description=params["description"],
+            parent_path=parent_path or None,
         )
         space_id = created.space_id
         action = "created"
@@ -265,7 +261,7 @@ for config_path in config_files:
         "config_name": config_name,
         "space_id": space_id,
         "action": action,
-        "title": space_obj.title,
+        "title": params["title"],
     })
 
 # Save state

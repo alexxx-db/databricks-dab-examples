@@ -54,7 +54,9 @@ except Exception as e:
     )
     # State file is in ../src/ relative to tests/
     src_dir = str(Path(notebook_path).parent.parent / "src")
-    state_path = os.path.join("/Workspace", src_dir.lstrip("/"), "space_state.json")
+    if not src_dir.startswith("/Workspace"):
+        src_dir = "/Workspace" + src_dir
+    state_path = os.path.join(src_dir, "space_state.json")
 
     with open(state_path, "r") as f:
         state = json.load(f)
@@ -99,19 +101,22 @@ for result in deploy_results:
         )
         print(f"  [FAIL] Title missing target '{bundle_target}'")
 
-    # 3. Table identifiers are present and use correct catalog/schema
-    if space.table_identifiers:
-        print(f"  [PASS] Has {len(space.table_identifiers)} table identifier(s)")
-        for ti in space.table_identifiers:
-            if ti.table_identifier and ti.table_identifier.startswith(f"{catalog}.{schema}."):
-                print(f"    [PASS] Table '{ti.table_identifier}' has correct catalog.schema")
+    # 3. Serialized space structure is valid and table identifiers use correct catalog/schema
+    serialized = json.loads(space.serialized_space) if space.serialized_space else {}
+    tables = serialized.get("data_sources", {}).get("tables", [])
+    if tables:
+        print(f"  [PASS] Has {len(tables)} table identifier(s)")
+        for t in tables:
+            ti = t.get("table_identifier", "")
+            if ti.startswith(f"{catalog}.{schema}."):
+                print(f"    [PASS] Table '{ti}' has correct catalog.schema")
             else:
                 errors.append(
-                    f"{config_name}: Table '{ti.table_identifier}' does not match {catalog}.{schema}"
+                    f"{config_name}: Table '{ti}' does not match {catalog}.{schema}"
                 )
-                print(f"    [FAIL] Table '{ti.table_identifier}' has wrong catalog.schema")
+                print(f"    [FAIL] Table '{ti}' has wrong catalog.schema")
     else:
-        errors.append(f"{config_name}: No table identifiers found")
+        errors.append(f"{config_name}: No table identifiers found in serialized_space")
         print(f"  [FAIL] No table identifiers")
 
     # 4. Warehouse ID is set

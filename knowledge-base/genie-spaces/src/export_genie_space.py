@@ -60,46 +60,43 @@ def reverse_substitute_recursive(obj, catalog, schema):
 print(f"Exporting Genie Space: {space_id}")
 space = w.genie.get_space(space_id)
 
-# Build the exportable config
+# Parse the serialized_space JSON containing all space configuration
+serialized = json.loads(space.serialized_space) if space.serialized_space else {}
+
+# Build the exportable config in our user-friendly format
 config = {
     "title": space.title,
     "description": space.description or "",
     "warehouse_id": "{{warehouse_id}}",
 }
 
-# Table identifiers
-if space.table_identifiers:
-    config["table_identifiers"] = [
-        {"table_identifier": t.table_identifier, "id": t.id}
-        for t in space.table_identifiers
-    ]
+# Table identifiers from serialized_space
+tables = serialized.get("data_sources", {}).get("tables", [])
+if tables:
+    config["table_identifiers"] = tables
 
 # Sample questions
-if space.sample_questions:
-    config["sample_questions"] = list(space.sample_questions)
+sample_qs = serialized.get("config", {}).get("sample_questions", [])
+if sample_qs:
+    config["sample_questions"] = sample_qs
 
-# Instructions
-if space.instructions:
-    config["instructions"] = list(space.instructions)
+# Instructions block
+instr_block = serialized.get("instructions", {})
 
-# Example SQLs
-if space.example_sqls:
-    config["example_sqls"] = [
-        {"question": eq.question, "sql": eq.sql}
-        for eq in space.example_sqls
+text_instr = instr_block.get("text_instructions", "")
+if text_instr:
+    # Split back into a list for readability
+    config["instructions"] = [
+        line.strip() for line in text_instr.split("\n") if line.strip()
     ]
 
-# Table joins
-if space.table_joins:
-    config["table_joins"] = [
-        {
-            "left_table_id": tj.left_table_id,
-            "right_table_id": tj.right_table_id,
-            "left_column": tj.left_column,
-            "right_column": tj.right_column,
-        }
-        for tj in space.table_joins
-    ]
+example_sqls = instr_block.get("example_question_sqls", [])
+if example_sqls:
+    config["example_sqls"] = example_sqls
+
+join_specs = instr_block.get("join_specs", [])
+if join_specs:
+    config["table_joins"] = join_specs
 
 # Reverse-substitute catalog/schema values with placeholders
 config = reverse_substitute_recursive(config, catalog, schema)

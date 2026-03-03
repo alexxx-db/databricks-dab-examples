@@ -1,0 +1,40 @@
+# A job to deploy and validate Genie Spaces via the Genie Management API
+resources:
+  jobs:
+    genie_spaces_deploy:
+      name: genie_spaces_deploy_${bundle.target}
+
+      tags:
+        workload: genie_spaces
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+        - name: bundle_target
+          default: ${bundle.target}
+        - name: parent_path
+          default: ${workspace.root_path}
+
+      tasks:
+        - task_key: deploy_genie_spaces
+          notebook_task:
+            notebook_path: ../src/deploy_genie_space.py
+            source: WORKSPACE
+          environment_key: default
+
+        - task_key: validate_genie_spaces
+          depends_on:
+            - task_key: deploy_genie_spaces
+          notebook_task:
+            notebook_path: ../tests/validate_genie_space.py
+            source: WORKSPACE
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"

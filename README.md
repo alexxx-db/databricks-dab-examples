@@ -14,6 +14,7 @@ The repository is organized into multiple folders, each representing a distinct 
   - library packaged as wheel or using relative imports
 - [`knowledge-base/dais-2024-dab-mod-orch-template`](knowledge-base/dais-2024-dab-mod-orch-template): Simple template for DAB
 - [`knowledge-base/metric-views`](knowledge-base/metric-views): DAB project including dimensional model, Metric Views, and an AI/BI dashboard
+- [`knowledge-base/genie-spaces`](knowledge-base/genie-spaces): DAB project deploying Genie Spaces via the Genie Management API
 - [`knowledge-base/uv_bundle`](knowledge-base/uv_bundle) DAB project that includes uv as a package manager. Also includes unit testing examples with [databricks-connect](https://docs.databricks.com/aws/en/dev-tools/databricks-connect/python)
 - [`sts-dabs-demo`](sts-dabs-demo) DABs simple project that includes many CICD pipeline definitions
 
